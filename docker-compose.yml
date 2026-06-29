@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  db:
+    container_name: streaming_db
+    image: postgres:16
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: streaming_db
+    ports: 
+      - "5432:5432"
+    volumes:
+      - ./database:/database
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+
+
+    
+
