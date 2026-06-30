@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16 # Utiliza la imagen oficial de PostgreSQL versión 16
+    container_name: streaming_db # Nombre fijo para el contenedor en la red de Docker
+    environment:
+    # Configuración de las credenciales de acceso y nombre de la BD
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: streaming_db
+    ports:
+      - "5432:5432" # Mapea el puerto local 5432 al puerto interno 5432 del contenedor
+    volumes:
+    # Montajes para inicializar la base de datos automáticamente al encender el contenedor
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql # Script SQL que crea la estructura
+      - ./database/perfil_usuarios.csv:/docker-entrypoint-initdb.d/perfil_usuarios.csv # Datos demográficos iniciales
+
+# 2. SERVICIO DE APRENDIZAJE AUTOMÁTICO (ML-SERVICE)
+  ml-service:
+    build:
+      context: ./ml-service # Ruta de la carpeta que contiene el Dockerfile para compilar el script train.py
+    ports:
+      - "8000:8000" # Expone el puerto del backend/API si fuera necesario
+    volumes:
+    # Volúmenes compartidos para persistencia y comunicación
+      - ./data:/app/data # Carpeta local para mover archivos CSV (como clientes_segmentados.csv) hacia los demás servicios
+      - modelos:/app/models # Volumen nombrado de Docker para almacenar de forma segura los archivos pesados (.pkl, .json)     
+    depends_on:
+      - postgres # Garantiza que el servicio de ML no inicie hasta que la Base de Datos esté lista
+  dashboard:
+    build:
+      context: ./dashboard # Ruta de la carpeta que contiene el Dockerfile para compilar la app de Streamlit
+    ports:
+      - "8501:8501" # Puerto por defecto de Streamlit expuesto para poder abrirlo en el navegador (localhost:8501)
+    volumes:
+    # Conecta a las mismas carpetas que ml-service para consumir sus resultados
+      - ./data:/app/data  # Lee los CSV generados por el entrenamiento para armar los gráficos
+      - modelos:/app/models # Accede al modelo entrenado, scaler y métricas exportadas         
+    depends_on:
+      - ml-service # Asegura que el dashboard levante después de que el contenedor de ML haya procesado los scripts
+volumes:
+  modelos: # Declaración del volumen nombrado abstracto que usan ml-service y dashboard para compartir los archivos Pickle (.pkl)
