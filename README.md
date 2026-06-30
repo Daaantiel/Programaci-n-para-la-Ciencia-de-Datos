@@ -15,35 +15,39 @@ El objetivo es identificar grupos de usuarios con comportamientos y perfiles sim
 
 # Arquitectura de la solución
     
-    CSV Streaming
-               |
-               |
-               v
-       +----------------+
-       |  Integración   |
-       |    de datos    |
-       +----------------+
-               |
-               |
- +-------------+-------------+
- |                           |
- v                           v
-PostgreSQL DB             Dataset integrado
-perfil_usuarios         clientes_segmentados.csv
-|                           |
-+-------------+-------------+
-|
-v
-+----------------+
-|     KMeans     |
-|  Segmentación  |
-+----------------+
-|
-+-----------+-----------+
-|                       |
-v                       v
-FastAPI                Streamlit
-Servicio ML              Dashboard
+             CSV Streaming
+                      |
+                      |
+                      v
+
+              +----------------+
+              |  Integración   |
+              |   de datos     |
+              +----------------+
+                      |
+                      |
+        +-------------+-------------+
+        |                           |
+        v                           v
+PostgreSQL DB                 Dataset integrado
+perfil_usuarios               clientes_segmentados.csv
+                      |
+                      |
+                      v
+
+              +----------------+
+              |    KMeans      |
+              |  Segmentación  |
+              +----------------+
+
+                      |
+          +-----------+-----------+
+          |                       |
+
+          v                       v
+
+      FastAPI                Streamlit
+   Servicio ML              Dashboard
 
 
 # Tecnologías utilizadas
