@@ -19,7 +19,6 @@ El objetivo es identificar grupos de usuarios con comportamientos y perfiles sim
                       |
                       |
                       v
-
               +----------------+
               |  Integración   |
               |   de datos     |
@@ -29,12 +28,11 @@ El objetivo es identificar grupos de usuarios con comportamientos y perfiles sim
         +-------------+-------------+
         |                           |
         v                           v
-PostgreSQL DB                 Dataset integrado
-perfil_usuarios               clientes_segmentados.csv
+    PostgreSQL DB                 Dataset integrado
+    perfil_usuarios               clientes_segmentados.csv
                       |
                       |
                       v
-
               +----------------+
               |    KMeans      |
               |  Segmentación  |
