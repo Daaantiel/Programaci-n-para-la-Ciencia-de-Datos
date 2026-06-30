@@ -8,16 +8,8 @@ CREATE TABLE perfil_usuarios (
     distancia_promedio_red_km NUMERIC(5,2)
 );
 
-COPY perfil_usuarios (
-    id_cliente,
-    edad,
-    dispositivos_registrados,
-    porcentaje_uso_app_movil,
-    cantidad_perfiles_creados,
-    interacciones_mensuales_soporte,
-    distancia_promedio_red_km
-)
-FROM '/database/perfil_usuarios.csv'
+COPY perfil_usuarios
+FROM '/docker-entrypoint-initdb.d/perfil_usuarios.csv'
 DELIMITER ','
 CSV HEADER;
 

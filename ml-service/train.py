@@ -16,6 +16,7 @@ os.makedirs("models", exist_ok=True)
 # Archivo CSV
 usuarios= pd.read_csv('data/usuarios_streaming.csv')
 
+# Fuente desde la BD
 engine = create_engine("postgresql://admin:admin@postgres:5432/streaming_db")
 
 perfil= pd.read_sql(
@@ -26,69 +27,81 @@ from perfil_usuarios
 engine
 )
 
-#integracion
-
-data= usuarios.merge(perfil, on="id_cliente")
+# Integración
+data = usuarios.merge(perfil, on="id_cliente")
 
 # Guarda el archivo con la data integrada
-data.to_csv("data/usuarios_streaming.csv", index=False)
+data.to_csv("data/data_usuarios.csv", index=False)
 
-# Variables del modelo
-X= data.drop(columns=["id_cliente"])
+# Variables del modelo: quitamos el ID para dejar solo datos numéricos
+X = data.drop(columns=["id_cliente"])
 
 # Escalamiento
-scaler= StandardScaler()
-X_scaled= scaler.fit_transform(X)
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
-inertias= []
-shilhouette_scores= []
-for k in range(2, 11):
-    modelo_kmeans= KMeans(n_clusters=k, random_state=42, n_init=10)
-    modelo_kmeans.fit(X_scaled)
-    inertias.append(modelo_kmeans.inertia_)
-    shilhouette_scores.append(silhouette_score(X_scaled, modelo_kmeans.labels_))
-    
-kl= KneeLocator(range(2, 11), inertias, curve="convex", direction="decreasing")
+inertias = []
+silhouettes = []
+for k in range(2,11):
+    modelo = KMeans(n_clusters=k, random_state=29, n_init=10)
+    modelo.fit(X_scaled)
 
-#Modelo
-K_optimo= kl.elbow
-K_means= KMeans(n_clusters=K_optimo, random_state=42, n_init=10)
+    inertias.append(modelo.inertia_)
+    silhouettes.append(silhouette_score(X_scaled, modelo.labels_))
 
-#predicciones del modelo 
-clusters= K_means.fit_predict(X_scaled)
-data["cluster"]= clusters
+kl = KneeLocator(
+    range(2,11),
+    inertias,
+    curve='convex',
+    direction='decreasing'
+)
 
-print("Modelo de segmentación entrenado con éxito. Número de clusters: ", K_optimo)
+# Modelo
+k_optimo = kl.elbow
+kmeans = KMeans(n_clusters=k_optimo, random_state=29, n_init=10)
+# Predicciones
+clusters = kmeans.fit_predict(X_scaled)
+data["cluster"] = clusters
 
-pca= PCA(n_components=2)
+print("Modelo de segmentación creado!!!")
 
-components= pca.fit_transform(X_scaled)
+pca = PCA(n_components=2)
 
-data["pca1"]= components[:, 0]
-data["pca2"]= components[:, 1]
+componentes = pca.fit_transform(X_scaled)
+
+data["pc1"] = componentes[:, 0]
+data["pc2"] = componentes[:, 1]
 
 # Guarda data con los cluster y dos componentes principales
-data.to_csv("data/usuarios_streaming_cluster.csv", index=False)
+data.to_csv("data/usuarios_segmentados.csv", index=False)
 
 # Guarda las métricas 
-
-metricas= {
-    "n_clusters": K_optimo,
-    "inertia": K_means.inertia_,
-    "silhouette_score": silhouette_score(X_scaled, K_means.labels_)
-    
+metricas = {
+    "k_optimo": int(k_optimo),
+    "silhouette_score": silhouette_score(X_scaled, data["cluster"]),
+    "n_usuarios": int(len(data)),
+    "n_clusters": int(k_optimo),
+    "varianza_pca": float(
+        pca.explained_variance_ratio_.sum()
+    )
 }
 
 with open("models/metricas.json", "w") as f:
-    json.dump(metricas, f)
+    json.dump(metricas, f, indent=4)
 
-#Guardado de centroides
-centroides= scaler.inverse_transform(K_means.cluster_centers_)
+# Guarda los cenroides
+centroides_original = scaler.inverse_transform(kmeans.cluster_centers_)
 
-centroides_df= pd.DataFrame(centroides, columns=X.columns)
+centroides_df = pd.DataFrame(
+    centroides_original,
+    columns=X.columns
+)
+
 centroides_df.to_csv("data/centroides.csv", index=False)
 
-#Guardado del modelo y escalado
-pickle.dump(K_means, open("models/kmeans_model.pkl", "wb"))
-pickle.dump(scaler, open("models/scaler.pkl", "wb")) 
+# Guardar modelo y data escalada
+pickle.dump(kmeans, open("models/modelo_kmeans.pkl", "wb"))
+pickle.dump(scaler, open("models/scaler.pkl", "wb"))
 pickle.dump(pca, open("models/pca.pkl", "wb"))
+
+print("Modelo guardado")
